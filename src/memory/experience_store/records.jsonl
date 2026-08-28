@@ -3,3 +3,7 @@
 {"ts": "2026-08-28T10:28:30.717835", "version": "v0.2.0", "attack_point": "幸存者偏差默认值", "desc": "get_universe 默认 as_of_date=None 拿最新成分含偏差", "fix": "未传 as_of_date 告警，强制造调用方思考", "status": "fixed"}
 {"ts": "2026-08-28T10:28:30.717956", "version": "v0.2.0", "attack_point": "缓存污染", "desc": "增量更新写回未按 as_of_date 裁旧缓存未来数据", "fix": "读缓存后先按 as_of_date 裁剪再处理", "status": "fixed"}
 {"ts": "2026-08-28T10:28:30.718071", "version": "v0.2.0", "attack_point": "index 健壮性", "desc": "source 返回非 datetime index 时 loader 比较崩", "fix": "new.index=pd.to_datetime(new.index) 防御", "status": "fixed"}
+{"ts": "2026-08-28T10:56:14.133577", "version": "v0.3.0", "attack_point": "滑点穿透涨跌停", "desc": "open=10.99未触板(涨停11.0)允许买入，滑点价10.99*1.001=11.00089>涨停价，成交价违反交易所价格笼子", "fix": "含滑点价clamp至[跌停价,涨停价]板内", "status": "fixed"}
+{"ts": "2026-08-28T10:56:14.133782", "version": "v0.3.0", "attack_point": "win_rate漏算买入费用", "desc": "realized pnl只扣卖出费用，买入佣金/过户费未计入round-trip致胜率虚高", "fix": "Lot增fee_per_share均摊买入费，reduce_fifo返回含费成本价", "status": "fixed"}
+{"ts": "2026-08-28T10:56:14.133916", "version": "v0.3.0", "attack_point": "期末敞口不可见", "desc": "回测结束持仓未平，metrics无期末股数/市值，浮盈亏被解读遗漏", "fix": "metrics增open_position_shares/open_position_value", "status": "fixed"}
+{"ts": "2026-08-28T10:56:14.134038", "version": "v0.3.0", "attack_point": "短样本年化夏普误导", "desc": "3根bar也能算出年化5000%+，样本不足指标虚假膨胀", "fix": "n<63交易日时annual/sharpe置None防误导", "status": "fixed"}

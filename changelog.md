@@ -12,12 +12,12 @@
 - 开发铁律：Defender / Attacker / Judge 三角色对抗约束（写入 blueprint.md）
 - 版本化实施计划路线图 v0.1.0 → v1.0.0（blueprint.md 第八章）
 - blueprint.html 交互式架构图（系统暗色自适应）
+- code_plan.html 实施计划可视化（版本路线图 + 三角色对抗循环）
 - changelog.md 版本管理机制
 
-### Pending（下一版 v0.3.0）
-- L2 回测引擎 MVP：事件驱动四阶段 + A 股规则(T+1/佣金/印花税/过户费/100股/涨跌停)
-- 均线交叉策略端到端跑通
-- Attacker 重点：前视偏差、费用漏算、涨跌停可成交、T+1 误判
+### Pending（下一版 v0.4.0）
+- L2 因子库 + 清洗：Alpha101(部分公式) + factor_cleaner(去极值/标准化/行业+市值中性化)
+- Attacker 重点：中性化错误、异常值、财报披露日 vs 报告期
 
 ---
 
@@ -66,15 +66,34 @@
 
 ---
 
+## [v0.3.0] - 2026-08-28
+
+### Added
+- L2 回测引擎 `src/primitives/backtest/`：
+  - `engine.py`：事件驱动四阶段（Market→Signal→Order→Fill）+ lot 级持仓（T+1）+ 拒单记录 + 绩效指标
+  - `ashare_rules.py`：A 股规则完整建模（佣金万2.5最低5元/印花税卖出千0.5/过户费双向万0.1/滑点/涨跌停板价/100股整手）
+  - `strategy.py`：Strategy 基类 + MACross 均线交叉策略 + Signal
+- 前视偏差防护：t 日收盘生成信号，t+1 开盘成交；策略只见截至 t 的数据；最后一日不发信号
+- 测试 `tests/test_backtest.py`：16 离线用例 + 5 Attacker 回归用例
+
+### Defender 自检
+- 30/30 测试通过（`pytest -m "not online"`，含 v0.2.0 数据层 9 个）
+- MACross 端到端：合成 V 形行情先买后卖成交顺序正确
+
+### Attacker 攻击（≥3，均已修复）
+1. **滑点穿透涨跌停**（阻断）：open=10.99 未触板(涨停 11.0)，滑点价 10.99×1.001=11.00089 > 涨停价违反价格笼子 → 成交价 clamp 至 [跌停, 涨停] 板内
+2. **win_rate 漏算买入费用**（高）：realized pnl 只扣卖出费用，买入佣金/过户费未入 round-trip → Lot 增 fee_per_share 均摊，reduce_fifo 返回含费成本价
+3. **期末敞口不可见**（中）：持仓未平时 metrics 无期末股数/市值，浮盈亏被遗漏 → 增 open_position_shares / open_position_value
+4. **短样本年化夏普误导**（中）：3 根 bar 算出年化数千倍 → n < 63 交易日置 None
+
+### Judge 裁决
+- ✅ 通过：4 个攻击点全修复且有回归测试；前视/T+1/涨跌停/费用四攻击面均有正向用例；经验库沉淀 4 条（累计 9 条）
+
+---
+
 ## 计划中版本（Planned）
 
 > 仅列计划，未发布。发布时移入上方对应 `[vX.Y.Z]` 区块。
-
-### [Planned v0.3.0] L2 回测引擎 MVP
-- 事件驱动四阶段（Market→Signal→Order→Fill）
-- A 股规则完整建模（T+1 / 佣金 / 印花税 / 过户费 / 100股整数倍 / 涨跌停 / 滑点）
-- 均线交叉策略端到端跑通
-- Attacker 重点：前视、费用漏算、涨跌停可成交、T+1 误判
 
 ### [Planned v0.4.0] L2 因子库 + 清洗
 - Alpha101（部分公式）+ factor_cleaner（去极值/标准化/行业+市值中性化）
