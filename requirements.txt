@@ -4,3 +4,4 @@ akshare>=1.12          # A 股免费数据源
 tushare>=1.4           # A 股数据源（需 token，支持时点成分防幸存者偏差）
 pyyaml>=6.0            # 配置
 pytest>=7.0            # 测试
+mcp>=1.0               # MCP 协议（外部 Agent 集成）

@@ -270,6 +270,81 @@ response = srv.call_json("run_backtest",
 在 Trae 中使用：将上述 MCPServer 包装为 MCP server 进程，在 Trae 的 MCP 配置中注册即可。
 外部 Agent 的工具调用结果保证 JSON 可序列化（numpy/pandas 自动转换），不可序列化类型直接拒绝。
 
+### Trae 客户端配置
+
+项目根目录已提供 [mcp_server.py](./mcp_server.py) 入口脚本，开箱即用。配置步骤：
+
+**第 1 步：安装依赖**
+
+```bash
+cd /path/to/make_a_deal
+pip install -r requirements.txt   # 包含 mcp>=1.0
+```
+
+**第 2 步：在 Trae 中添加 MCP Server**
+
+打开 Trae → 设置 → MCP → 添加 MCP Server，选择 **命令行（stdio）** 模式：
+
+| 字段 | 值 |
+|------|-----|
+| 名称 | `make_a_deal` |
+| 命令 | `python` |
+| 参数 | `/path/to/make_a_deal/mcp_server.py` |
+| 环境变量 | `TUSHARE_TOKEN=your_token`（可选，用 tushare 时需要） |
+
+等价 JSON 配置（Trae 的 `.trae/mcp.json` 或设置导入）：
+
+```json
+{
+  "mcpServers": {
+    "make_a_deal": {
+      "command": "python",
+      "args": ["/path/to/make_a_deal/mcp_server.py"],
+      "env": {
+        "TUSHARE_TOKEN": "your_token"
+      }
+    }
+  }
+}
+```
+
+> 将 `/path/to/make_a_deal` 替换为实际项目路径。Windows 用户命令改为 `python` 的完整路径（如 `C:\\Python312\\python.exe`）。
+
+**第 3 步：验证连接**
+
+配置保存后，Trae 会自动启动 MCP server 进程。在 Trae 对话中输入：
+
+```
+调用 make_a_deal 的 run_quant_pipeline 工具
+```
+
+Agent 会自动识别并调用 `run_quant_pipeline`，返回端到端 pipeline 执行结果。
+
+**可用工具列表**
+
+MCP server 启动后自动注册以下工具，Trae Agent 可按需调用：
+
+| 工具名 | 功能 | 参数 |
+|--------|------|------|
+| `run_quant_pipeline` | 端到端量化 pipeline（数据→因子→回测→风控→审计） | 无 |
+| `compute_alpha_factors` | 计算 Alpha101 因子（合成数据演示） | `code`, `n_days` |
+| `backtest_ma_cross` | 均线交叉回测（合成数据演示） | `code`, `fast`, `slow`, `cash` |
+| `sandbox_execute` | 沙箱安全执行 Python 代码 | `code`, `timeout` |
+
+**自定义工具**
+
+在 [mcp_server.py](./mcp_server.py) 中添加新工具：
+
+```python
+@mcp.tool()
+def my_new_tool(param: str) -> str:
+    """工具描述（Agent 会读这段 docstring 决定何时调用）"""
+    # 你的实现
+    return _to_jsonable(result)  # 确保返回 JSON 可序列化
+```
+
+重启 Trae 或 MCP server 后生效。
+
 ### 安全执行用户代码
 
 当 Agent 需要执行 LLM 生成的代码（因子公式/回测脚本等），走沙箱隔离：
