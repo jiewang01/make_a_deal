@@ -15,10 +15,6 @@
 - code_plan.html 实施计划可视化（版本路线图 + 三角色对抗循环）
 - changelog.md 版本管理机制
 
-### Pending（下一版 v0.8.0）
-- L3 偏差校正 + 记忆库：bias_correction + factor/strategy/experience store
-- Attacker 重点：经验库污染、误丢弃、相似度误判
-
 ---
 
 ## [v0.1.0] - 2026-08-28
@@ -189,13 +185,33 @@
 
 ---
 
+## [v0.8.0] - 2026-08-28
+
+### Added
+- L3 偏差校正 + 记忆库 `src/memory/` + `src/agent/bias_correction.py`：
+  - `stores.py`：MemoryStore 基座——JSONL 原子写（fsync + tempfile/os.replace 重写）、内容指纹去重（易变字段不参与）、损坏行跳过不传染、关键词/Jaccard 相似度检索（阈值 [0,1] 硬校验）、purge 半数护栏（防 predicate 写错整库误删）
+  - `factor_strategy_stores.py`：FactorStore/StrategyStore 注册前查重——同名/同公式命中 + 相似度命中按记录身份合并去重（DuplicationCheck）
+  - `experience_store`：重构为 MemoryStore 架构（原子写 + 攻击记录指纹去重防污染）
+  - `bias_correction.py`：闭环后偏差检测——recency_bias（近因偏差，结论引用早期证据则豁免）/ confirmation_bias（仅成功重复调用，失败重试豁免）/ empty_evidence（幻觉警报）/ overfit_risk（IS/OOS 衰减 + 样本外实亏），BiasCheckResult 只给证据与建议不篡改结论
+- 测试 `tests/test_memory_bias.py`：21 离线用例（去重/检索/purge 护栏/四类偏差/Attacker 回归）
+
+### Defender 自检
+- 140/140 全量通过（`pytest -m "not online"`，含 v0.2–v0.7 回归；1 个 akshare 在线用例因沙箱无依赖被 deselect）
+
+### Attacker 攻击（≥3，均已修复）
+1. **经验库污染**（阻断）：experience_store 裸 open/write，无原子写无去重，重复攻击记录与写坏行直接入库 → 基于 MemoryStore 重构（fsync + 指纹去重 + 损坏行跳过）
+2. **相似度阈值越界静默误判**（高）：search_similar threshold<0 全量命中、>1 永不命中且无报错 → 构造期 [0,1] 校验 ValueError
+3. **查重列表重复计数**（中）：同名命中(1.0)与相似度命中指向同一条记录时 similar 列表重复列出 → 按记录 JSON 身份去重取最高分
+4. **确认偏差语义混淆**（中）：失败重试被计入确认偏差（重试是纠错不是堆证据）→ 只统计成功步骤签名
+
+### Judge 裁决
+- ✅ 通过：4 个攻击点全修复且有回归测试；purge 半数护栏 + 阈值硬校验 + 指纹去重构成记忆库三道机械化防线；经验库沉淀 4 条（累计 33 条）
+
+---
+
 ## 计划中版本（Planned）
 
 > 仅列计划，未发布。发布时移入上方对应 `[vX.Y.Z]` 区块。
-
-### [Planned v0.8.0] L3 偏差校正 + 记忆库
-- bias_correction + factor/strategy/experience store
-- Attacker 重点：经验库污染、误丢弃、相似度误判
 
 ### [Planned v0.9.0] L4 治理 + 沙箱
 - sandbox（Docker/子进程隔离）+ audit + human_interface
