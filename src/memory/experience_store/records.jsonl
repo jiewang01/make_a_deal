@@ -19,3 +19,7 @@
 {"ts": "2026-08-28T11:46:32.620005", "version": "v0.5.0", "attack_point": "停牌强制清零", "desc": "无成交额时存量持仓权重置零=假设停牌能卖出，实际卖不出造成虚假风控", "fix": "禁增不禁持：目标≤存量则保留并告警，加仓/新仓才置零(holdings参数)", "status": "fixed"}
 {"ts": "2026-08-28T11:46:32.620168", "version": "v0.5.0", "attack_point": "择时空序列崩溃", "desc": "MATiming空Series时rolling().iloc[-1]抛IndexError", "fix": "入口判空len<n直接保守False", "status": "fixed"}
 {"ts": "2026-08-28T11:46:32.620328", "version": "v0.5.0", "attack_point": "止损参数无校验", "desc": "pct/trail传负数或>1语义荒谬不报错，风控静默失效", "fix": "构造期校验(0,1)开区间/atr_n>=1/atr_mult>0", "status": "fixed"}
+{"ts": "2026-08-28T11:55:22.301747", "version": "v0.6.0", "attack_point": "WFO评估异常被静默吞", "desc": "run_wfo捕获evaluate异常转NaN，策略实现bug(KeyError等)被当作不可评估参数跳过且无报告", "fix": "告警+计数n_eval_errors，与不可评估(NaN)显式区分", "status": "fixed"}
+{"ts": "2026-08-28T11:55:22.301985", "version": "v0.6.0", "attack_point": "过拟合判据忽略OOS为负", "desc": "只看decay=OOS/IS，IS=-0.2/OOS=-0.3时decay=1.5无警报但样本外实亏", "fix": "OOS加权均值<0直接并入overfit_warning", "status": "fixed"}
+{"ts": "2026-08-28T11:55:22.302145", "version": "v0.6.0", "attack_point": "子区间段长不均偏置", "desc": "np.array_split在len%k!=0时段长差1，短段收益波动被放大段间不可比", "fix": "等长切段：丢弃开头余数(len//k点)", "status": "fixed"}
+{"ts": "2026-08-28T11:55:22.302288", "version": "v0.6.0", "attack_point": "k接近len伪稳定", "desc": "k=len时每段1个点段收益恒0恒判稳定", "fix": "要求len>=2k每段至少2点否则报错", "status": "fixed"}

@@ -15,9 +15,9 @@
 - code_plan.html 实施计划可视化（版本路线图 + 三角色对抗循环）
 - changelog.md 版本管理机制
 
-### Pending（下一版 v0.6.0）
-- L2 回测增强：Brinson 归因 + WFO 滚动前进 + 子区间稳定性（三层验证雏形）
-- Attacker 重点：过拟合、参数泄漏、样本外崩塌
+### Pending（下一版 v0.7.0）
+- L3 Agent 最小闭环：planner + tool_caller + 四阶闭环（无记忆库）
+- Attacker 重点：幻觉、越权、无限循环、token 失控
 
 ---
 
@@ -143,13 +143,32 @@
 
 ---
 
+## [v0.6.0] - 2026-08-28
+
+### Added
+- L2 回测增强 `src/primitives/backtest/`（三层验证雏形）：
+  - `attribution.py`：Brinson-BHB 归因（行业 配置/选股/交互 三分解 + 恒等式对账硬校验 + 现金显式建模 + 权重和/行业标签/收益缺口防御）
+  - `wfo.py`：WFO 滚动前进验证（fold 切片防泄漏硬断言 + embargo 间隔 + NaN 候选不参与选参 + IS/OOS 衰减比过拟合警报）
+  - `stability.py`：子区间稳定性（等长切段 + 链式基准段收益复合恒等 + 崩塌/占比/离散度三判据）
+- 测试 `tests/test_enhance.py`：24 离线用例
+
+### Defender 自检
+- 96/96 全量通过（含 v0.2–v0.5 回归）
+
+### Attacker 攻击（≥3，均已修复）
+1. **WFO 评估异常被静默吞**（高）：evaluate 抛异常转 NaN，实现 bug 与"不可评估"混淆且无报告 → 告警 + n_eval_errors 计数区分
+2. **过拟合判据忽略 OOS 为负**（高）：IS=-0.2/OOS=-0.3 时 decay=1.5 无警报但样本外实亏 → OOS 加权均值 <0 并入 overfit_warning
+3. **子区间段长不均偏置**（中）：len%k≠0 时 array_split 段长差 1，短段波动被放大 → 等长切段（丢弃开头余数）
+4. **k 接近 len 伪稳定**（中）：k=len 每段 1 点恒 0 收益恒判稳定 → 强制 len ≥ 2k
+
+### Judge 裁决
+- ✅ 通过：4 个攻击点全修复且有回归测试；Brinson 恒等式对账 + WFO fold 防泄漏断言构成机械化判据；经验库沉淀 4 条（累计 25 条）
+
+---
+
 ## 计划中版本（Planned）
 
 > 仅列计划，未发布。发布时移入上方对应 `[vX.Y.Z]` 区块。
-
-### [Planned v0.6.0] L2 回测增强
-- Brinson 归因 + WFO 滚动前进 + 子区间稳定性（三层验证雏形）
-- Attacker 重点：过拟合、参数泄漏、样本外崩塌
 
 ### [Planned v0.7.0] L3 Agent 最小闭环
 - planner + tool_caller + 四阶闭环（无记忆库）
