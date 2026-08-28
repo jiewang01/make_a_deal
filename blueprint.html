@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>make_a_deal · 四层双闭环 AI 驱动架构</title>
+<style>
+:root {
+  --brand: #7c5cff;
+  --brand-soft: #efeafe;
+  --surface: #ffffff;
+  --surface-muted: #f5f6fb;
+  --text: #1a1a2e;
+  --text-muted: #6b7280;
+  --border: #e5e7eb;
+  --accent: #14b8a6;
+  --accent-soft: #e6fbf7;
+  --neutral-soft: #f0f1f5;
+  --font-sans: system-ui, -apple-system, sans-serif;
+}
+:root[data-widget-theme="dark"] {
+  --brand: #9b7cff;
+  --brand-soft: #2a2342;
+  --surface: #1e1f2a;
+  --surface-muted: #161720;
+  --text: #f3f4f6;
+  --text-muted: #9ca3af;
+  --border: #2a2b38;
+  --accent: #2dd4bf;
+  --accent-soft: #1a3a36;
+  --neutral-soft: #1f2029;
+}
+body {
+  margin: 0;
+  padding: 24px;
+  background: var(--surface-muted);
+  min-height: 100vh;
+  box-sizing: border-box;
+  font-family: var(--font-sans);
+  color: var(--text);
+}
+.arch-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; font-family: var(--font-sans); max-width: 760px; margin: 0 auto; }
+.arch-title { font-size: 14px; font-weight: 600; color: var(--text); margin: 0 0 6px 0; }
+.arch-sub { font-size: 12px; color: var(--text-muted); margin: 0 0 12px 0; }
+svg { display: block; width: 100%; height: auto; }
+.legend-row { display:flex; gap:18px; margin-top:10px; flex-wrap:wrap; }
+.legend-item { display:flex; align-items:center; gap:6px; font-size:11px; color: var(--text-muted); }
+.legend-line { width:22px; height:0; border-top:2px solid var(--brand); }
+.legend-dash { width:22px; height:0; border-top:2px dashed var(--brand); }
+.legend-acc { width:22px; height:0; border-top:2px solid var(--accent); }
+</style>
+<script>
+  // 跟随系统暗色，独立打开时自动适配
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    document.documentElement.setAttribute('data-widget-theme', 'dark');
+  }
+</script>
+</head>
+<body>
+<div class="arch-card" data-dynamic-ui-widget data-template="redesigned-architecture">
+  <p class="arch-title">make_a_deal · 四层 + 双闭环 AI 驱动架构</p>
+  <p class="arch-sub">LLM 是研究员，框架是研究工具箱 + 实验台 + 记忆库。内闭环自动迭代，外闭环人机共审。</p>
+  <svg viewBox="0 0 720 490" role="img" aria-label="重新设计的四层双闭环架构">
+    <defs>
+      <marker id="arr-brand" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+        <path d="M1 1 L7 4 L1 7 Z" fill="var(--brand)"/>
+      </marker>
+      <marker id="arr-accent" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+        <path d="M1 1 L7 4 L1 7 Z" fill="var(--accent)"/>
+      </marker>
+    </defs>
+
+    <!-- 人类监督 pill -->
+    <rect x="295" y="20" width="130" height="40" rx="20" fill="var(--brand-soft)" stroke="var(--brand)" stroke-width="1.5"/>
+    <text x="360" y="45" text-anchor="middle" font-family="var(--font-sans)" font-size="13" font-weight="600" fill="var(--text)">人类监督</text>
+
+    <!-- L4 治理层 -->
+    <rect x="24" y="75" width="560" height="80" rx="12" fill="var(--neutral-soft)" stroke="var(--border)" stroke-width="1"/>
+    <text x="304" y="91" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="600" fill="var(--text-muted)">L4 · 治理层 Governance</text>
+    <g font-family="var(--font-sans)">
+      <rect x="40" y="101" width="120" height="46" rx="8" fill="var(--surface)" stroke="var(--border)"/>
+      <text x="100" y="120" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">人类接口</text>
+      <text x="100" y="136" text-anchor="middle" font-size="10" fill="var(--text-muted)">目标·审核</text>
+
+      <rect x="176" y="101" width="120" height="46" rx="8" fill="var(--surface)" stroke="var(--border)"/>
+      <text x="236" y="120" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">审计确认</text>
+      <text x="236" y="136" text-anchor="middle" font-size="10" fill="var(--text-muted)">入库前卡点</text>
+
+      <rect x="312" y="101" width="120" height="46" rx="8" fill="var(--surface)" stroke="var(--border)"/>
+      <text x="372" y="120" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">沙箱执行</text>
+      <text x="372" y="136" text-anchor="middle" font-size="10" fill="var(--text-muted)">隔离·禁网</text>
+
+      <rect x="448" y="101" width="120" height="46" rx="8" fill="var(--surface)" stroke="var(--border)"/>
+      <text x="508" y="120" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">实盘券商</text>
+      <text x="508" y="136" text-anchor="middle" font-size="10" fill="var(--text-muted)">QMT 可插拔</text>
+    </g>
+
+    <!-- L3 Agent 编排层 (核心, brand高亮) -->
+    <rect x="24" y="170" width="560" height="80" rx="12" fill="var(--brand-soft)" stroke="var(--brand)" stroke-width="2"/>
+    <text x="304" y="186" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="600" fill="var(--brand)">L3 · Agent 编排层 (核心)</text>
+    <g font-family="var(--font-sans)">
+      <rect x="40" y="196" width="120" height="46" rx="8" fill="var(--surface)" stroke="var(--brand)"/>
+      <text x="100" y="215" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">任务规划</text>
+      <text x="100" y="231" text-anchor="middle" font-size="10" fill="var(--text-muted)">目标拆子任务</text>
+
+      <rect x="176" y="196" width="120" height="46" rx="8" fill="var(--surface)" stroke="var(--brand)"/>
+      <text x="236" y="215" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">工具调用</text>
+      <text x="236" y="231" text-anchor="middle" font-size="10" fill="var(--text-muted)">FuncCall/MCP</text>
+
+      <rect x="312" y="196" width="120" height="46" rx="8" fill="var(--surface)" stroke="var(--brand)"/>
+      <text x="372" y="215" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">四阶闭环</text>
+      <text x="372" y="231" text-anchor="middle" font-size="10" fill="var(--text-muted)">假设→迭代</text>
+
+      <rect x="448" y="196" width="120" height="46" rx="8" fill="var(--surface)" stroke="var(--brand)"/>
+      <text x="508" y="215" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">偏差校正</text>
+      <text x="508" y="231" text-anchor="middle" font-size="10" fill="var(--text-muted)">防过拟合</text>
+    </g>
+
+    <!-- L2 研究原语层 -->
+    <rect x="24" y="265" width="560" height="80" rx="12" fill="var(--surface)" stroke="var(--border)" stroke-width="1"/>
+    <text x="304" y="281" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="600" fill="var(--text-muted)">L2 · 研究原语层 Research Primitives</text>
+    <g font-family="var(--font-sans)">
+      <rect x="40" y="291" width="120" height="46" rx="8" fill="var(--surface-muted)" stroke="var(--border)"/>
+      <text x="100" y="310" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">因子库</text>
+      <text x="100" y="326" text-anchor="middle" font-size="10" fill="var(--text-muted)">Alpha101+AI</text>
+
+      <rect x="176" y="291" width="120" height="46" rx="8" fill="var(--surface-muted)" stroke="var(--border)"/>
+      <text x="236" y="310" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">策略库</text>
+      <text x="236" y="326" text-anchor="middle" font-size="10" fill="var(--text-muted)">基类+内置</text>
+
+      <rect x="312" y="291" width="120" height="46" rx="8" fill="var(--surface-muted)" stroke="var(--border)"/>
+      <text x="372" y="310" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">回测引擎</text>
+      <text x="372" y="326" text-anchor="middle" font-size="10" fill="var(--text-muted)">事件+向量化</text>
+
+      <rect x="448" y="291" width="120" height="46" rx="8" fill="var(--surface-muted)" stroke="var(--border)"/>
+      <text x="508" y="310" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">组合风控</text>
+      <text x="508" y="326" text-anchor="middle" font-size="10" fill="var(--text-muted)">8层+择时</text>
+    </g>
+
+    <!-- L1 基础设施层 -->
+    <rect x="24" y="360" width="560" height="80" rx="12" fill="var(--surface-muted)" stroke="var(--border)" stroke-width="1"/>
+    <text x="304" y="376" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="600" fill="var(--text-muted)">L1 · 基础设施层 Infrastructure</text>
+    <g font-family="var(--font-sans)">
+      <rect x="40" y="386" width="120" height="46" rx="8" fill="var(--surface)" stroke="var(--border)"/>
+      <text x="100" y="405" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">数据层</text>
+      <text x="100" y="421" text-anchor="middle" font-size="10" fill="var(--text-muted)">Parquet+增量</text>
+
+      <rect x="176" y="386" width="120" height="46" rx="8" fill="var(--surface)" stroke="var(--border)"/>
+      <text x="236" y="405" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">股票池</text>
+      <text x="236" y="421" text-anchor="middle" font-size="10" fill="var(--text-muted)">CSI300/500</text>
+
+      <rect x="312" y="386" width="120" height="46" rx="8" fill="var(--surface)" stroke="var(--border)"/>
+      <text x="372" y="405" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">计算内核</text>
+      <text x="372" y="421" text-anchor="middle" font-size="10" fill="var(--text-muted)">NumPy/Rust</text>
+
+      <rect x="448" y="386" width="120" height="46" rx="8" fill="var(--surface)" stroke="var(--border)"/>
+      <text x="508" y="405" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">配置CI</text>
+      <text x="508" y="421" text-anchor="middle" font-size="10" fill="var(--text-muted)">YAML+Actions</text>
+    </g>
+
+    <!-- 记忆库 (右侧贯穿 L3-L1) -->
+    <rect x="600" y="170" width="96" height="270" rx="12" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+    <text x="648" y="190" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="600" fill="var(--accent)">记忆库</text>
+    <text x="648" y="206" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--text-muted)">沉淀复用</text>
+    <line x1="612" y1="220" x2="684" y2="220" stroke="var(--border)" stroke-width="1"/>
+    <text x="648" y="244" text-anchor="middle" font-family="var(--font-sans)" font-size="11" font-weight="600" fill="var(--text)">因子库</text>
+    <text x="648" y="284" text-anchor="middle" font-family="var(--font-sans)" font-size="11" font-weight="600" fill="var(--text)">策略库</text>
+    <text x="648" y="324" text-anchor="middle" font-family="var(--font-sans)" font-size="11" font-weight="600" fill="var(--text)">经验库</text>
+    <text x="648" y="360" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--text-muted)">失败案例</text>
+    <text x="648" y="374" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--text-muted)">避免重蹈</text>
+
+    <!-- 主调用箭头 (向下, brand实线) -->
+    <path d="M360,60 L360,75" fill="none" stroke="var(--brand)" stroke-width="2" marker-end="url(#arr-brand)"/>
+    <path d="M360,155 L360,170" fill="none" stroke="var(--brand)" stroke-width="2" marker-end="url(#arr-brand)"/>
+    <path d="M360,250 L360,265" fill="none" stroke="var(--brand)" stroke-width="2" marker-end="url(#arr-brand)"/>
+    <path d="M360,345 L360,360" fill="none" stroke="var(--brand)" stroke-width="2" marker-end="url(#arr-brand)"/>
+
+    <!-- 反馈闭环 (左侧向上, brand虚线) -->
+    <path d="M24,305 C 6,305 6,210 24,210" fill="none" stroke="var(--brand)" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#arr-brand)"/>
+    <text x="10" y="262" font-family="var(--font-sans)" font-size="10" fill="var(--text-muted)">反馈</text>
+
+    <!-- Agent <-> 记忆库 (accent双向) -->
+    <path d="M584,210 L600,210" fill="none" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#arr-accent)"/>
+    <path d="M600,225 L584,225" fill="none" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#arr-accent)"/>
+    <text x="592" y="202" text-anchor="middle" font-family="var(--font-sans)" font-size="10" fill="var(--text-muted)">读写</text>
+
+    <!-- L2 沉淀到记忆库 (可选, accent) -->
+    <path d="M584,305 L600,305" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#arr-accent)"/>
+    <text x="592" y="298" text-anchor="middle" font-family="var(--font-sans)" font-size="9" fill="var(--text-muted)">沉淀</text>
+
+    <!-- 底部说明 -->
+    <text x="360" y="462" text-anchor="middle" font-family="var(--font-sans)" font-size="11" fill="var(--text-muted)">内闭环：L3↔L2 自动迭代（预算受限）  ·  外闭环：L4 人机共审 → 入库/驳回</text>
+    <text x="360" y="478" text-anchor="middle" font-family="var(--font-sans)" font-size="11" fill="var(--text-muted)">主调用向下（实线）  ·  结果反馈向上（虚线）  ·  记忆库读写（青色）</text>
+  </svg>
+  <div class="legend-row">
+    <div class="legend-item"><span class="legend-line"></span>主调用（实线）</div>
+    <div class="legend-item"><span class="legend-dash"></span>结果反馈（虚线）</div>
+    <div class="legend-item"><span class="legend-acc"></span>记忆库读写</div>
+  </div>
+</div>
+</body>
+</html>

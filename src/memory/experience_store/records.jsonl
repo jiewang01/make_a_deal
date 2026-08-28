@@ -1,0 +1,5 @@
+{"ts": "2026-08-28T10:28:30.717457", "version": "v0.2.0", "attack_point": "复权基准漂移", "desc": "akshare/tushare qfq/hfq 以最新交易日为基准，增量拼接不同基准复权数据致价格跳变", "fix": "adj!=none 禁用增量全量重拉；建议改 adj=none+复权因子(后续版本)", "status": "fixed"}
+{"ts": "2026-08-28T10:28:30.717677", "version": "v0.2.0", "attack_point": "tushare NameError", "desc": "daily 用 ts.pro_bar 但 ts 是 __init__ 局部变量，方法内 NameError", "fix": "存 self._ts=ts，daily 用 self._ts.pro_bar", "status": "fixed"}
+{"ts": "2026-08-28T10:28:30.717835", "version": "v0.2.0", "attack_point": "幸存者偏差默认值", "desc": "get_universe 默认 as_of_date=None 拿最新成分含偏差", "fix": "未传 as_of_date 告警，强制造调用方思考", "status": "fixed"}
+{"ts": "2026-08-28T10:28:30.717956", "version": "v0.2.0", "attack_point": "缓存污染", "desc": "增量更新写回未按 as_of_date 裁旧缓存未来数据", "fix": "读缓存后先按 as_of_date 裁剪再处理", "status": "fixed"}
+{"ts": "2026-08-28T10:28:30.718071", "version": "v0.2.0", "attack_point": "index 健壮性", "desc": "source 返回非 datetime index 时 loader 比较崩", "fix": "new.index=pd.to_datetime(new.index) 防御", "status": "fixed"}

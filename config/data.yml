@@ -1,0 +1,12 @@
+# L1 数据层配置
+data:
+  default_source: akshare          # akshare(免费) / tushare(需token)
+  default_adj: qfq                 # qfq前复权 / hfq后复权 / none不复权
+  cache_dir: data/parquet          # Parquet 缓存目录
+  tushare_token_env: TUSHARE_TOKEN  # tushare token 读此环境变量
+
+universe:
+  default: csi300                  # 默认股票池
+  # ⚠️ 历史回测强烈建议用 tushare 时点成分，防幸存者偏差
+  backtest_source: tushare
+  backtest_as_of_date: null        # 回测时按各时点传，勿用最新成分
