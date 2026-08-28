@@ -209,13 +209,32 @@
 
 ---
 
+## [v0.9.0] - 2026-08-28
+
+### Added
+- L4 治理层 `src/governance/`：
+  - `sandbox.py`：子进程隔离执行 Python 代码——预导入第三方库（numpy/pandas/scipy 在 guard 前完成 init）→ import 白名单 guard（os/subprocess/socket/pathlib 等高危模块直接拒绝）→ restricted builtins（移除 eval/exec/compile/breakpoint/input/globals/locals/vars，open 替换为工作目录限制版 _safe_open，路径穿越拦截）→ CPU/内存/超时硬上限
+  - `audit.py`：入库前审计卡点——AuditTrail append-only 审计轨迹（submit→approve/reject→revoke 全生命周期），无 evidence 提交直接拒绝（防拍脑袋通过），同 artifact 不同状态不被互相去重（status 参与指纹）
+  - `human_interface.py`：人类监督接口——InvestmentGoal 目标 schema 校验（收益/回撤范围+股票池上限 500）+ HumanGate 人审闸门（默认 deny，approve/reject/defer/revoke 全生命周期，决策不可重复）
+- 测试 `tests/test_governance.py`：34 离线用例（沙箱 8+审计 8+人审 5+目标 4+Attacker 回归 9）
+
+### Defender 自检
+- 174/174 全量通过（`pytest -m "not online"`，含 v0.2–v0.8 回归；1 个 akshare 在线用例 deselect）
+
+### Attacker 攻击（≥3，均已修复）
+1. **沙箱 open() 逃逸**（阻断）：open() 内置函数未拦截，用户代码可读写工作目录外任意文件（/etc/passwd 等）→ restricted builtins 替换 open 为 _safe_open（仅允许工作目录内路径，路径穿越一并拦截）
+2. **沙箱 builtins 暴露**（高）：exec 命名空间默认暴露全部 builtins（eval/exec/compile/__import__），可绕过 import guard → 构建 _safe_builtins 字典移除危险内置函数，__import__ 替换为 guard 版
+3. **人审决策不可撤回**（中）：HumanGate approve 后无 revoke，错误审核无法回滚 → 新增 revoke 方法（append-only，撤回后 is_approved=False）
+4. **股票池无上限**（中）：InvestmentGoal.stock_pool 无数量校验，万级股票池致资源耗尽 → validate 增上限 500
+
+### Judge 裁决
+- ✅ 通过：4 个攻击点全修复且有回归测试；restricted builtins + import 白名单 + 工作目录限制 open 构成沙箱三道机械化防线；审计/人审 append-only + revoke 全生命周期构成治理闭环；经验库沉淀 4 条（累计 37 条）
+
+---
+
 ## 计划中版本（Planned）
 
 > 仅列计划，未发布。发布时移入上方对应 `[vX.Y.Z]` 区块。
-
-### [Planned v0.9.0] L4 治理 + 沙箱
-- sandbox（Docker/子进程隔离）+ audit + human_interface
-- Attacker 重点：沙箱逃逸、越权、审核绕过
 
 ### [Planned v1.0.0] MCP 工具化 + 端到端
 - tools/ MCP 暴露 + dashboard + 端到端 demo + 文档
