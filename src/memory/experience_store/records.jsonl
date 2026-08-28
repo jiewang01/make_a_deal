@@ -13,3 +13,9 @@
 {"ts": "2026-08-28T11:39:03.191880", "version": "v0.4.0", "attack_point": "log非正市值崩溃", "desc": "mktcap含0/负值时np.log产生-inf污染回归", "fix": "log前剔除非正市值样本并告警", "status": "fixed"}
 {"ts": "2026-08-28T11:39:03.192023", "version": "v0.4.0", "attack_point": "披露日vs报告期", "desc": "缺财报对齐工具，按报告期end_date对齐会前视(年报次年3-4月才披露)", "fix": "新增align_fundamental用ann_date做merge_asof backward对齐", "status": "fixed"}
 {"ts": "2026-08-28T11:39:03.192159", "version": "v0.4.0", "attack_point": "中性化缺截距", "desc": "回归无截距项，因子整体水平暴露未剔除，残差均值不为0", "fix": "X显式加const=1.0列，残差均值严格为0", "status": "fixed"}
+{"ts": "2026-08-28T11:46:32.619334", "version": "v0.5.0", "attack_point": "流动性公式反向", "desc": "cap_total/amt=(参与率×组合值)/成交额，量纲反了，流动性充裕的票反而被重裁", "fix": "改为 participation×amount/portfolio_value（可交易额=参与率×当日成交额）", "status": "fixed"}
+{"ts": "2026-08-28T11:46:32.619640", "version": "v0.5.0", "attack_point": "跳空缺口方向反", "desc": "多头止损退出价用max(stop,next_open)，低开时假装按止损价成交，缺口损失被隐藏", "fix": "改为min(stop,next_open)，跳空损失显式化", "status": "fixed"}
+{"ts": "2026-08-28T11:46:32.619833", "version": "v0.5.0", "attack_point": "入口日止损伪触发", "desc": "止损基准(entry/peak)当日才成立，入口日low击穿即触发属日内逻辑混入日线", "fix": "check增is_entry_day豁免参数", "status": "fixed"}
+{"ts": "2026-08-28T11:46:32.620005", "version": "v0.5.0", "attack_point": "停牌强制清零", "desc": "无成交额时存量持仓权重置零=假设停牌能卖出，实际卖不出造成虚假风控", "fix": "禁增不禁持：目标≤存量则保留并告警，加仓/新仓才置零(holdings参数)", "status": "fixed"}
+{"ts": "2026-08-28T11:46:32.620168", "version": "v0.5.0", "attack_point": "择时空序列崩溃", "desc": "MATiming空Series时rolling().iloc[-1]抛IndexError", "fix": "入口判空len<n直接保守False", "status": "fixed"}
+{"ts": "2026-08-28T11:46:32.620328", "version": "v0.5.0", "attack_point": "止损参数无校验", "desc": "pct/trail传负数或>1语义荒谬不报错，风控静默失效", "fix": "构造期校验(0,1)开区间/atr_n>=1/atr_mult>0", "status": "fixed"}
