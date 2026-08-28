@@ -23,3 +23,7 @@
 {"ts": "2026-08-28T11:55:22.301985", "version": "v0.6.0", "attack_point": "过拟合判据忽略OOS为负", "desc": "只看decay=OOS/IS，IS=-0.2/OOS=-0.3时decay=1.5无警报但样本外实亏", "fix": "OOS加权均值<0直接并入overfit_warning", "status": "fixed"}
 {"ts": "2026-08-28T11:55:22.302145", "version": "v0.6.0", "attack_point": "子区间段长不均偏置", "desc": "np.array_split在len%k!=0时段长差1，短段收益波动被放大段间不可比", "fix": "等长切段：丢弃开头余数(len//k点)", "status": "fixed"}
 {"ts": "2026-08-28T11:55:22.302288", "version": "v0.6.0", "attack_point": "k接近len伪稳定", "desc": "k=len时每段1个点段收益恒0恒判稳定", "fix": "要求len>=2k每段至少2点否则报错", "status": "fixed"}
+{"ts": "2026-08-28T12:01:33.045676", "version": "v0.7.0", "attack_point": "非str结果绕过token截断", "desc": "Tool.call只截断str，dict/list结果在观测文本中全量repr进入下轮prompt，token失控防护被绕过", "fix": "_step_observation对非str结果同样按400字符截断", "status": "fixed"}
+{"ts": "2026-08-28T12:01:33.045915", "version": "v0.7.0", "attack_point": "预算截断丢弃终答", "desc": "计划含final_answer但末步预算耗尽时先break不检查终答，可完成的任务误报budget_exceeded", "fix": "截断后仍检查final_answer，有终答按completed上报且保留截断记录", "status": "fixed"}
+{"ts": "2026-08-28T12:01:33.046066", "version": "v0.7.0", "attack_point": "stall_tolerance=0恒判停滞", "desc": "observations[-(0+1):]即[-1:]单元素，all()恒True，任何1条观测即停滞", "fix": "构造期校验stall_tolerance>=1", "status": "fixed"}
+{"ts": "2026-08-28T12:01:33.046202", "version": "v0.7.0", "attack_point": "schema外参数依赖TypeError兜底", "desc": "LLM塞schema未声明的额外参数不被validate_args拒绝，靠执行期fn(**args)TypeError兜底，越权参数未在计划期拦截", "fix": "validate_args显式拒绝schema外键，parse_plan双层拦截", "status": "fixed"}

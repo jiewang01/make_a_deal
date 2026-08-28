@@ -15,9 +15,9 @@
 - code_plan.html 实施计划可视化（版本路线图 + 三角色对抗循环）
 - changelog.md 版本管理机制
 
-### Pending（下一版 v0.7.0）
-- L3 Agent 最小闭环：planner + tool_caller + 四阶闭环（无记忆库）
-- Attacker 重点：幻觉、越权、无限循环、token 失控
+### Pending（下一版 v0.8.0）
+- L3 偏差校正 + 记忆库：bias_correction + factor/strategy/experience store
+- Attacker 重点：经验库污染、误丢弃、相似度误判
 
 ---
 
@@ -166,13 +166,32 @@
 
 ---
 
+## [v0.7.0] - 2026-08-28
+
+### Added
+- L3 Agent 最小闭环 `src/agent/`（LLM 无关设计，可注入 callable）：
+  - `tool_registry.py`：白名单工具注册表（同名重复注册报错防覆盖）+ 参数 schema 校验（含 schema 外参数拒绝）+ 结果截断 + 异常转结构化错误
+  - `planner.py`：LLMPlanner（注入 llm callable + prompt 模板）/ ScriptedPlanner（测试复现）+ parse_plan（markdown 围栏容错）+ validate_plan（工具白名单/参数/步数硬校验）
+  - `loop.py`：四阶闭环（假设→验证→解读→迭代）+ 失控防护（max_iterations / max_total_calls 预算 / 停滞检测 / 观测截断）+ 全程 trace（StepRecord/IterationRecord）
+- 测试 `tests/test_agent.py`：23 离线用例（越权/幻觉/死循环/预算/截断全覆盖）
+
+### Defender 自检
+- 119/119 全量通过（含 v0.2–v0.6 回归）
+
+### Attacker 攻击（≥3，均已修复）
+1. **非 str 结果绕过 token 截断**（阻断）：dict/list 结果全量 repr 进入观测 → `_step_observation` 统一 400 字符截断
+2. **预算截断丢弃已有终答**（高）：末步预算耗尽时含 final_answer 的计划误报 budget_exceeded → 截断后仍检查终答，completed 上报 + 保留截断记录
+3. **stall_tolerance=0 恒判停滞**（高）：`[-1:]` 单元素 all() 恒 True → 构造期校验 ≥1
+4. **schema 外参数依赖 TypeError 兜底**（高）：LLM 塞越权参数未在计划期拦截 → validate_args 显式拒绝 + parse_plan 双层拦截
+
+### Judge 裁决
+- ✅ 通过：4 个攻击点全修复且有回归测试；白名单 + 双层参数校验构成越权/幻觉机械化拦截；经验库沉淀 4 条（累计 29 条）
+
+---
+
 ## 计划中版本（Planned）
 
 > 仅列计划，未发布。发布时移入上方对应 `[vX.Y.Z]` 区块。
-
-### [Planned v0.7.0] L3 Agent 最小闭环
-- planner + tool_caller + 四阶闭环（无记忆库）
-- Attacker 重点：幻觉、越权、无限循环、token 失控
 
 ### [Planned v0.8.0] L3 偏差校正 + 记忆库
 - bias_correction + factor/strategy/experience store
