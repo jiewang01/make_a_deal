@@ -7,3 +7,9 @@
 {"ts": "2026-08-28T10:56:14.133782", "version": "v0.3.0", "attack_point": "win_rate漏算买入费用", "desc": "realized pnl只扣卖出费用，买入佣金/过户费未计入round-trip致胜率虚高", "fix": "Lot增fee_per_share均摊买入费，reduce_fifo返回含费成本价", "status": "fixed"}
 {"ts": "2026-08-28T10:56:14.133916", "version": "v0.3.0", "attack_point": "期末敞口不可见", "desc": "回测结束持仓未平，metrics无期末股数/市值，浮盈亏被解读遗漏", "fix": "metrics增open_position_shares/open_position_value", "status": "fixed"}
 {"ts": "2026-08-28T10:56:14.134038", "version": "v0.3.0", "attack_point": "短样本年化夏普误导", "desc": "3根bar也能算出年化5000%+，样本不足指标虚假膨胀", "fix": "n<63交易日时annual/sharpe置None防误导", "status": "fixed"}
+{"ts": "2026-08-28T11:39:03.191331", "version": "v0.4.0", "attack_point": "清洗统计量前视", "desc": "winsorize/zscore按列全时序计算median/mean/std，t日因子用了t+1..T的数据", "fix": "全部改为按日横截面(axis=1)统计，加截断重算不变性测试", "status": "fixed"}
+{"ts": "2026-08-28T11:39:03.191579", "version": "v0.4.0", "attack_point": "中性化退化", "desc": "neutralize按列(单资产)回归，行业/市值为常数X退化成去均值，暴露完全未剔除", "fix": "每日横截面OLS：当日各资产因子~行业哑变量+const+log(cap)取残差", "status": "fixed"}
+{"ts": "2026-08-28T11:39:03.191732", "version": "v0.4.0", "attack_point": "NaN污染整列", "desc": "panel含NaN时lstsq得NaN beta，一条NaN污染当日全部残差且无丢弃报告", "fix": "按日有效样本回归(dropna)，缺失位输出NaN，丢弃比例超30%告警", "status": "fixed"}
+{"ts": "2026-08-28T11:39:03.191880", "version": "v0.4.0", "attack_point": "log非正市值崩溃", "desc": "mktcap含0/负值时np.log产生-inf污染回归", "fix": "log前剔除非正市值样本并告警", "status": "fixed"}
+{"ts": "2026-08-28T11:39:03.192023", "version": "v0.4.0", "attack_point": "披露日vs报告期", "desc": "缺财报对齐工具，按报告期end_date对齐会前视(年报次年3-4月才披露)", "fix": "新增align_fundamental用ann_date做merge_asof backward对齐", "status": "fixed"}
+{"ts": "2026-08-28T11:39:03.192159", "version": "v0.4.0", "attack_point": "中性化缺截距", "desc": "回归无截距项，因子整体水平暴露未剔除，残差均值不为0", "fix": "X显式加const=1.0列，残差均值严格为0", "status": "fixed"}

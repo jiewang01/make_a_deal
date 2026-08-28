@@ -15,9 +15,9 @@
 - code_plan.html 实施计划可视化（版本路线图 + 三角色对抗循环）
 - changelog.md 版本管理机制
 
-### Pending（下一版 v0.4.0）
-- L2 因子库 + 清洗：Alpha101(部分公式) + factor_cleaner(去极值/标准化/行业+市值中性化)
-- Attacker 重点：中性化错误、异常值、财报披露日 vs 报告期
+### Pending（下一版 v0.5.0）
+- L2 组合风控 + 择时：8 层风控 + 止损(ATR/追踪) + 市场择时
+- Attacker 重点：风控穿透、极端行情、仓位溢出、止损跳空
 
 ---
 
@@ -91,13 +91,35 @@
 
 ---
 
+## [v0.4.0] - 2026-08-28
+
+### Added
+- L2 因子库 `src/primitives/factors/`：
+  - `operators.py`：Alpha101 风格时序算子（delay/delta/sign/ts_corr/ts_cov/ts_std/ts_rank），仅向后看无前视
+  - `alpha101.py`：Alpha101 子集 alpha006/012/013/044（日线 OHLCV 可算公式），`@register_factor` 注册表 + `compute_all`
+  - `cleaner.py`：factor_cleaner 清洗流水线（**按日横截面口径**）：MAD 去极值 → z-score → 行业+市值中性化（每日横截面 OLS）+ `cs_rank` + `clean_pipeline`
+  - `align_fundamental`：财报按披露日（ann_date）merge_asof 对齐到交易日，防报告期前视
+- 测试 `tests/test_factors.py`：19 离线用例（含截断重算无前视判据、横截面正交性、A1–A5 回归）
+
+### Defender 自检
+- 42/42 通过（实施期）；修复后 49/49 全量通过（含 v0.2/v0.3 回归）
+
+### Attacker 攻击（≥3，均已修复）
+1. **清洗统计量前视**（阻断）：winsorize/zscore 按列全时序统计，t 日因子用了 t+1..T 数据 → 全部改按日横截面，新增"截断重算不变性"无前视判据测试
+2. **中性化退化**（阻断）：按列回归中行业/市值为常数 X，回归退化为去均值，暴露完全未剔除 → 改每日横截面 OLS（行业哑变量 + 截距 + log 市值）取残差
+3. **NaN 污染整列**（高）：一条 NaN 经 lstsq 得 NaN beta 污染当日全部残差，且丢弃无报告 → 按日有效样本回归，缺失位 NaN，丢弃比例超 30% 告警
+4. **log(非正市值) 崩溃**（中）：mktcap 含 0/负 → -inf 污染回归 → 剔除并告警
+5. **披露日工具缺失**（高）：未来接 PE/ROE 按报告期对齐即前视 → 新增 align_fundamental（ann_date merge_asof backward）
+6. **中性化缺截距**（中，修复中自发现）：回归无截距致因子整体水平暴露残留、残差均值≠0 → X 加 const 列
+
+### Judge 裁决
+- ✅ 通过：6 个攻击点全修复且有回归测试；"截断重算不变性"作为因子无前视的机械化判据入库；经验库沉淀 6 条（累计 15 条）
+
+---
+
 ## 计划中版本（Planned）
 
 > 仅列计划，未发布。发布时移入上方对应 `[vX.Y.Z]` 区块。
-
-### [Planned v0.4.0] L2 因子库 + 清洗
-- Alpha101（部分公式）+ factor_cleaner（去极值/标准化/行业+市值中性化）
-- Attacker 重点：中性化错误、异常值、财报披露日 vs 报告期
 
 ### [Planned v0.5.0] L2 组合风控 + 择时
 - 8 层风控 + 止损（ATR/追踪）+ 市场择时
