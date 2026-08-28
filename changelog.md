@@ -232,13 +232,33 @@
 
 ---
 
+## [v1.0.0] - 2026-08-28
+
+### Added
+- MCP 工具封装层 `src/tools/`：
+  - `mcp_server.py`：MCPServer 工具服务——白名单注册→JSON Schema 参数校验→执行→`_to_jsonable` 递归序列化（numpy/pandas → list/dict）→不可序列化拒绝；`list_tools()` 输出 MCP tools/list 格式；`call_json()` 输出 MCP 工具调用响应
+  - `pipeline.py`：端到端 pipeline（合成数据→因子→回测→风控→偏差校正→审计），任一步骤失败终止并返回失败原因（防错误级联）；支持人审模式（HumanGate）
+- `Dockerfile`：python:3.12-slim + 依赖层缓存 + pytest 入口
+- 测试 `tests/test_tools.py`：23 离线用例（MCP 10+序列化 5+Pipeline 4+Attacker 回归 4）
+
+### Defender 自检
+- 197/197 全量通过（`pytest -m "not online"`，含 v0.2–v0.9 回归；1 个 akshare 在线用例 deselect）
+- Pipeline 端到端 demo 验证通过：数据→因子→回测→风控→偏差校正→审计 全链路 OK
+
+### Attacker 攻击（≥3，均已修复）
+1. **审计硬编码通过**（高）：Pipeline 的 submit/approve 返回值未检查，audit_approved 硬编码 True，重复运行时 submit dedup 失败仍报告成功 → 检查 submit 返回值，失败时查 is_approved 判断是否已审核通过，approve 返回值直接赋给 audit_approved
+2. **Pipeline 路径注入**（中）：audit_path/gate_path 无路径校验，可通过 `../..` 写入任意文件系统位置 → 入口添加 normpath 校验，拒绝含 `..` 的路径
+3. **call_json default=str 掩盖**（低）：`json.dumps(default=str)` 将不可序列化类型静默转为字符串，与 call() 的拒绝行为不一致 → 移除 default=str，与 call() 保持一致
+
+### Judge 裁决
+- ✅ 通过：3 个攻击点全修复且有回归测试；MCPServer 复用 ToolRegistry 白名单 + schema 校验 + _to_jsonable 三道机械化防线构成接口契约保障；Pipeline 逐步失败终止 + 路径校验 + 审计返回值检查构成端到端安全链；经验库沉淀 3 条（累计 40 条）
+- 🎉 v1.0.0 是首个正式发布版本（1.0.0），L1-L4 四层架构全部就位，197 项离线测试全通过
+
+---
+
 ## 计划中版本（Planned）
 
-> 仅列计划，未发布。发布时移入上方对应 `[vX.Y.Z]` 区块。
-
-### [Planned v1.0.0] MCP 工具化 + 端到端
-- tools/ MCP 暴露 + dashboard + 端到端 demo + 文档
-- Attacker 重点：全量回归、接口契约、安全
+> v1.0.0 已完成全部 L1-L4 四层架构实施。后续版本可基于 MCP 工具化向外扩展。
 
 ---
 

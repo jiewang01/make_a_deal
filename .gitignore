@@ -19,6 +19,10 @@ data/parquet/
 data/raw/
 data/processed/
 
+# Pipeline 测试产物（不进版本库）
+audit.jsonl
+gate.jsonl
+
 # IDE
 .idea/
 .vscode/
