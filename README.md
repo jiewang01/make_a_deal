@@ -322,14 +322,16 @@ Agent 会自动识别并调用 `run_quant_pipeline`，返回端到端 pipeline �
 
 **可用工具列表**
 
-MCP server 启动后自动注册以下工具，Trae Agent 可按需调用：
+MCP server 启动后向外部 Agent 暴露 **4 个工具**，覆盖 L1-L4 全链路：
 
-| 工具名 | 功能 | 参数 |
-|--------|------|------|
-| `run_quant_pipeline` | 端到端量化 pipeline（数据→因子→回测→风控→审计） | 无 |
-| `compute_alpha_factors` | 计算 Alpha101 因子（合成数据演示） | `code`, `n_days` |
-| `backtest_ma_cross` | 均线交叉回测（合成数据演示） | `code`, `fast`, `slow`, `cash` |
-| `sandbox_execute` | 沙箱安全执行 Python 代码 | `code`, `timeout` |
+| # | 工具名 | 层级 | 功能 | 参数 | 返回 |
+|---|--------|------|------|------|------|
+| 1 | `run_quant_pipeline` | L1→L4 | 端到端量化 pipeline（数据→因子→回测→风控→偏差校正→审计） | 无 | 各步骤状态 + 回测指标 |
+| 2 | `compute_alpha_factors` | L1 | 计算 Alpha101 因子（合成数据） | `code: str`, `n_days: int=250` | 因子数 + 均值/标准差摘要 |
+| 3 | `backtest_ma_cross` | L2 | 均线交叉回测（合成数据） | `code: str`, `fast: int=5`, `slow: int=20`, `cash: float=1e5` | 回测指标（收益/夏普/回撤） |
+| 4 | `sandbox_execute` | L4 | 沙箱安全执行 Python 代码（禁网/禁写/import 白名单） | `code: str`, `timeout: int=10` | stdout/stderr/exit_code |
+
+> 所有工具输出经 `_to_jsonable` 递归序列化（numpy/pandas → list/dict），保证 JSON 可安全传输。不可序列化类型直接拒绝（防传输层崩溃）。
 
 **自定义工具**
 
