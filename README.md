@@ -137,6 +137,187 @@ gate.decide(req_id, Decision.APPROVE, "user_A")  # 默认 deny
 gate.is_approved(req_id)  # True
 ```
 
+## 集成到 Agent
+
+本框架支持两种 Agent 集成路径：**内置 AgentLoop**（注入 LLM 直接跑四阶闭环）和 **外部 Agent**（通过 MCP 协议调用工具）。
+
+### 路径一：内置 AgentLoop（推荐）
+
+AgentLoop 已内置四阶闭环（假设→验证→解读→迭代），只需 3 步：
+
+**第 1 步：注册工具到 ToolRegistry**
+
+```python
+from src.agent import ToolRegistry
+
+def load_data(code: str, start: str, end: str) -> str:
+    """加载日线 OHLCV"""
+    from src.infra.data import DataLoader
+    loader = DataLoader()
+    return loader.load(code, start, end).to_json()
+
+def run_backtest(code: str, fast: int, slow: int) -> dict:
+    """均线交叉回测"""
+    from src.primitives.backtest.engine import BacktestEngine
+    from src.primitives.backtest.strategy import MACross
+    # ... 加载数据 + 回测 ...
+    return result.metrics
+
+def compute_factors(code: str) -> str:
+    """计算 Alpha101 因子"""
+    from src.primitives.factors.alpha101 import compute_all
+    # ... 加载数据 + 计算因子 ...
+    return factors.to_json()
+
+registry = ToolRegistry()
+registry.register("load_data", load_data,
+                  desc="加载日线行情",
+                  arg_schema={
+                      "code": {"type": "str", "required": True},
+                      "start": {"type": "str", "required": True},
+                      "end": {"type": "str", "required": True},
+                  })
+registry.register("run_backtest", run_backtest,
+                  desc="均线交叉回测",
+                  arg_schema={
+                      "code": {"type": "str", "required": True},
+                      "fast": {"type": "int", "required": True},
+                      "slow": {"type": "int", "required": True},
+                  })
+registry.register("compute_factors", compute_factors,
+                  desc="计算 Alpha101 因子",
+                  arg_schema={"code": {"type": "str", "required": True}})
+```
+
+**第 2 步：注入 LLM 创建 Planner**
+
+```python
+from src.agent import LLMPlanner
+
+# llm 是一个 callable: prompt(str) -> json_text(str)
+# 可对接 OpenAI / Anthropic / 本地模型
+def llm(prompt: str) -> str:
+    # 示例：对接 OpenAI
+    # from openai import OpenAI
+    # client = OpenAI()
+    # resp = client.chat.completions.create(
+    #     model="gpt-4o",
+    #     messages=[{"role": "user", "content": prompt}])
+    # return resp.choices[0].message.content
+    pass  # 替换为你的 LLM 调用
+
+planner = LLMPlanner(llm, registry, max_steps=8)
+```
+
+**第 3 步：运行 AgentLoop**
+
+```python
+from src.agent import AgentLoop
+
+loop = AgentLoop(
+    planner,
+    registry,
+    max_iterations=5,        # 最多 5 轮迭代
+    max_total_calls=20,      # 最多 20 次工具调用
+    max_observation_chars=6000,  # 观测文本截断
+    stall_tolerance=2,       # 连续 2 轮观测不变 → 判停滞
+)
+
+result = loop.run("评估 600519 近一年均线交叉策略，给出收益和最大回撤")
+
+print(result.final_answer)
+print(result.stop_reason)  # completed / max_iterations / budget_exceeded / stalled
+```
+
+Agent 会自动：生成计划 → 调用工具 → 观测结果 → 再计划 → 直到给出结论或预算耗尽。
+所有调用经过白名单 + schema 校验，不存在幻觉工具调用。
+
+### 路径二：外部 Agent（MCP 协议）
+
+通过 MCPServer 暴露工具，供 Trae / Claude Code / Codex 等外部 Agent 调用：
+
+```python
+from src.tools import MCPServer
+
+srv = MCPServer()
+
+# 注册工具（同路径一，但输出自动 JSON 序列化）
+srv.register("load_data", load_data,
+             desc="加载日线行情",
+             input_schema={
+                 "code": {"type": "str", "required": True},
+                 "start": {"type": "str", "required": True},
+                 "end": {"type": "str", "required": True},
+             })
+srv.register("run_backtest", run_backtest,
+             desc="均线交叉回测",
+             input_schema={
+                 "code": {"type": "str", "required": True},
+                 "fast": {"type": "int", "required": True},
+                 "slow": {"type": "int", "required": True},
+             })
+
+# 列出工具（MCP tools/list 格式）
+import json
+print(json.dumps(srv.list_tools(), indent=2, ensure_ascii=False))
+
+# 外部 Agent 调用（返回 JSON 字符串）
+response = srv.call_json("run_backtest",
+                         {"code": "600519", "fast": 5, "slow": 20})
+# {"ok": true, "value": {"total_return": 0.15, "sharpe": 1.2, ...}}
+```
+
+在 Trae 中使用：将上述 MCPServer 包装为 MCP server 进程，在 Trae 的 MCP 配置中注册即可。
+外部 Agent 的工具调用结果保证 JSON 可序列化（numpy/pandas 自动转换），不可序列化类型直接拒绝。
+
+### 安全执行用户代码
+
+当 Agent 需要执行 LLM 生成的代码（因子公式/回测脚本等），走沙箱隔离：
+
+```python
+from src.governance import Sandbox, SandboxConfig
+
+sb = Sandbox(SandboxConfig(timeout=10, max_memory_mb=512))
+
+# Agent 生成的因子公式代码
+code = """
+import numpy as np
+import pandas as pd
+
+def alpha_momentum(close, volume):
+    return close.pct_change(20) * np.sign(volume.diff())
+"""
+
+res = sb.run(code)
+# os/subprocess/socket 被禁，open() 限工作目录，eval/exec/compile 移除
+# 父进程不受影响，超时/CPU/内存有硬上限
+```
+
+### 集成架构图
+
+```
+┌─────────────────────────────────────────────────┐
+│                  Agent (LLM)                     │
+│  ┌───────────┐  ┌──────────┐  ┌───────────────┐  │
+│  │  Planner   │→│ AgentLoop │→│ ToolRegistry  │  │
+│  │ (LLM注入)  │  │ (四阶闭环) │  │ (白名单+校验)  │  │
+│  └───────────┘  └──────────┘  └───────┬───────┘  │
+│                                         │          │
+│  ┌──────────────────────────────────────┘          │
+│  │                                                 │
+│  ▼                                                 │
+│  MCPServer (JSON 序列化, 不可序列化拒绝)             │
+│  │                                                 │
+│  ├── load_data → DataLoader (akshare/tushare)      │
+│  ├── compute_factors → Alpha101                    │
+│  ├── run_backtest → BacktestEngine (A股规则)        │
+│  ├── risk_gate → 风控闸门                          │
+│  └── sandbox.run → 沙箱执行 LLM 生成代码            │
+│                                                     │
+│  L4 治理: AuditTrail (入库前审计) + HumanGate (人审) │
+└─────────────────────────────────────────────────────┘
+```
+
 ## 测试
 
 ```bash
